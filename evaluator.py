@@ -454,6 +454,9 @@ def evaluate(ast, environment):
         elif status in ["break", "continue"]: # Should not happen if loops/program node are correct
             raise Exception(f"'{status}' statement propagated out of function call.")
         else: # Normal function completion without explicit return (status is None)
+            # Lambda bodies are expressions (not statement_lists), so they implicitly return their value
+            if function["body"].get("tag") != "statement_list":
+                return val, None
             return None, None
 
     if ast["tag"] == "complex":
@@ -566,6 +569,15 @@ def evaluate(ast, environment):
             raise Exception(f"ImportError: File not found '{filename_val}'")
         except Exception as e:
             raise Exception(f"Error during import of '{filename_val}': {e}")
+    
+    if ast["tag"] == "lambda":
+        return {
+            "tag": "function",
+            "parameters": ast["parameters"],
+            "body": ast["body"],
+            "environment": environment
+        }, None     
+
 
     assert False, f"Unknown tag [{ast['tag']}] in AST"
 
@@ -1037,6 +1049,40 @@ def test_control_flow_scoping_rules():
     except Exception as e:
         assert "'break' statement outside of loop" in str(e)
 
+def test_lambda_functions():
+    """lambda_expression = "lambda" identifier { "," identifier } "=>" expression"""
+    print("test lambda functions")
+
+    # Test 1: Single parameter lambda - lambda x => x + 1
+    code = "add_one = lambda x => x + 1"
+    env = {}
+    equals(code, env, {"tag": "function", "parameters": [{"tag": "identifier", "value": "x", "position": 17}], "body": {"tag": "+", "left": {"tag": "identifier", "value": "x"}, "right": {"tag": "number", "value": 1}}}, {"add_one": {"tag": "function", "parameters": [{"tag": "identifier", "value": "x", "position": 17}], "body": {"tag": "+", "left": {"tag": "identifier", "value": "x"}, "right": {"tag": "number", "value": 1}}}})
+
+    # Test 2: Lambda call - (lambda x => x + 1)(5) should return 6
+    code = "result = (lambda x => x + 1)(5)"
+    env = {}
+    equals(code, env, 6, {"result": 6})
+
+    # Test 3: Multi-parameter lambda - lambda x, y => x + y
+    code = "add = lambda x, y => x + y"
+    env = {}
+    equals(code, env, {"tag": "function", "parameters": [{"tag": "identifier", "value": "x", "position": 15}, {"tag": "identifier", "value": "y", "position": 18}], "body": {"tag": "+", "left": {"tag": "identifier", "value": "x"}, "right": {"tag": "identifier", "value": "y"}}}, {"add": {"tag": "function", "parameters": [{"tag": "identifier", "value": "x", "position": 15}, {"tag": "identifier", "value": "y", "position": 18}], "body": {"tag": "+", "left": {"tag": "identifier", "value": "x"}, "right": {"tag": "identifier", "value": "y"}}}})
+
+    # Test 4: Multi-parameter lambda call - (lambda x, y => x + y)(3, 4) should return 7
+    code = "result = (lambda x, y => x + y)(3, 4)"
+    env = {}
+    equals(code, env, 7, {"result": 7})
+
+    # Test 5: Lambda with complex expression - lambda x => x * x + 2 * x + 1
+    code = "quadratic = lambda x => x * x + 2 * x + 1"
+    env = {}
+    evaluate(parse(tokenize(code)), env)
+    assert "quadratic" in env
+    # Test by calling the lambda
+    code2 = "result = quadratic(3)"
+    result, _ = evaluate(parse(tokenize(code2)), env)
+    assert result == 16, f"Expected 16 (3*3 + 2*3 + 1), got {result}"
+
 if __name__ == "__main__":
     # statements and programs are tested implicitly
     test_evaluate_single_value()
@@ -1060,5 +1106,6 @@ if __name__ == "__main__":
     test_evaluator_with_new_tags()
     test_scoping()
     test_closures()
+    test_lambda_functions()
     # test_control_flow_scoping_rules()
     print("done.")
