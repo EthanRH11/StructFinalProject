@@ -46,6 +46,8 @@ grammar = """
 
     statement = if_statement | while_statement | function_statement | return_statement | print_statement | exit_statement | import_statement | break_statement | continue_statement | assert_statement | expression
 
+    lambda_expression = "lambda" identifier { "," identifier } "=>" expression
+
     program = [ statement { ";" statement } {";"} ]
     """
 
@@ -81,6 +83,9 @@ def parse_simple_expression(tokens):
 
     if token["tag"] == "function":
         return parse_function(tokens)
+
+    if token["tag"] == "lambda":
+        return parse_lambda(tokens)
 
     if token["tag"] == "(":
         ast, tokens = parse_expression(tokens[1:])
@@ -1373,6 +1378,62 @@ def test_parse_program():
     assert ast=={'tag': 'program', 'statements': [{'tag': 'if', 'condition': {'tag': 'number', 'value': 1}, 'then': {'tag': 'statement_list', 'statements': [{'tag': 'print', 'value': {'tag': 'number', 'value': 3}}]}}, {'tag': 'print', 'value': {'tag': 'number', 'value': 4}}, {'tag': 'print', 'value': {'tag': 'number', 'value': 5}}]}
 
 
+def parse_lambda(tokens):
+    """lambda_expression = "lambda" identifier { "," identifier } "=>" expression"""
+    assert tokens[0]["tag"] == "lambda", f"Expected 'lambda' at position {tokens[0]['position']}"
+    tokens = tokens[1:]
+    
+    parameters = []
+    assert tokens[0]["tag"] == "identifier", f"Expected identifier at position {tokens[0]['position']}"
+    parameters.append(tokens[0])
+    tokens = tokens[1:]
+    
+    while tokens[0]["tag"] == ",":
+        tokens = tokens[1:]
+        assert tokens[0]["tag"] == "identifier", f"Expected identifier at position {tokens[0]['position']}"
+        parameters.append(tokens[0])
+        tokens = tokens[1:]
+    
+    # Expect arrow =>
+    assert tokens[0]["tag"] == "arrow", f"Expected '=>' at position {tokens[0]['position']}"
+    tokens = tokens[1:]
+    
+    # Parse body expression
+    body, tokens = parse_expression(tokens)
+    
+    return {
+        "tag": "lambda",
+        "parameters": parameters,
+        "body": body
+    }, tokens
+
+def test_parse_lambda():
+    """lambda_expression = "lambda" identifier { "," identifier } "=>" expression"""
+    print("testing parse_lambda...")
+    
+    # Simple lambda with one parameter
+    ast, tokens = parse_lambda(tokenize("lambda x => x + 1"))
+    assert ast["tag"] == "lambda"
+    assert len(ast["parameters"]) == 1
+    assert ast["parameters"][0]["value"] == "x"
+    assert ast["body"]["tag"] == "+"
+    
+    # Lambda with multiple parameters
+    ast, tokens = parse_lambda(tokenize("lambda x, y => x + y"))
+    assert ast["tag"] == "lambda"
+    assert len(ast["parameters"]) == 2
+    assert ast["parameters"][0]["value"] == "x"
+    assert ast["parameters"][1]["value"] == "y"
+    assert ast["body"]["tag"] == "+"
+    
+    # Lambda with complex expression
+    ast, tokens = parse_lambda(tokenize("lambda x => x * x + 2 * x + 1"))
+    assert ast["tag"] == "lambda"
+    assert len(ast["parameters"]) == 1
+    assert ast["parameters"][0]["value"] == "x"
+
+
+
 def parse(tokens):
     ast, tokens = parse_program(tokens)
     return ast
@@ -1469,6 +1530,7 @@ if __name__ == "__main__":
         test_parse_import_statement,
         test_parse_assert_statement,
         test_parse_statement,
+        test_parse_lambda,
         test_parse_program,
     ]
 
