@@ -105,7 +105,7 @@ def test_parse_simple_expression():
 
     node, remaining_tokens = parse_simple_expression(tokenize("x"))
     assert node["tag"] == "identifier"
-    assert node["value"] == "x", f"Expected 'x', got {result}"
+    assert node["value"] == "x", f"Expected 'x', got {node['value']}"
     assert remaining_tokens[0]["tag"] is None, "Expected end of tokens"
 
     node, remaining_tokens = parse_simple_expression(tokenize("null"))
@@ -115,13 +115,13 @@ def test_parse_simple_expression():
     for n in [1, 12, 1.3, 1.23]:
         node, remaining_tokens = parse_simple_expression(tokenize(str(n)))
         assert node["tag"] == "number"
-        assert node["value"] == n, f"Expected {n}, got {result}"
+        assert node["value"] == n, f"Expected {n}, got {node['value']}"
         assert remaining_tokens[0]["tag"] is None, "Expected end of tokens"
 
     for s in ['""', '"hello"']:
         node, remaining_tokens = parse_simple_expression(tokenize(s))
         assert node["tag"] == "string"
-        assert node["value"] == s.replace('"', ""), f"Expected {s}, got {result}"
+        assert node["value"] == s.replace('"', ""), f"Expected {s}, got {node['value']}"
         assert remaining_tokens[0]["tag"] is None, "Expected end of tokens"
 
     for s in ["[1,2,3]", "[]"]:
