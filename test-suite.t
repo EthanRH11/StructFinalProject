@@ -1,6 +1,6 @@
-// ============================================================================
-// SECTION 9: LAMBDA EXPRESSIONS
-// ============================================================================
+/* ============================================================================
+ SECTION 9: LAMBDA EXPRESSIONS
+ ============================================================================*/
 
 // Test 1: Simple lambda with single parameter
 print("Test 1: Simple lambda with single parameter");
@@ -73,3 +73,20 @@ print("Test 10: Lambda with arithmetic chain");
 calc = lambda x => ((x + 2) * 3) - 5;
 print calc(1);
 assert calc(1) == 4;
+
+/* ============================================================================
+ SECTION 10: Multiline Comments
+ ============================================================================*/
+
+ /* this is a multiline comment 
+    that spans several lines
+    and should be ignored by the evaluator
+ */
+ print ("Multiline comment test.");
+
+ /* Another multiline comment describing lambda function implementation
+    in the evaluator module. Lambda functions are anonymous function that can take
+    parameters and return value. They are defined using the syntax:
+    lambda param1, param2, ... paramN => expression. This allows for a single line function thats quick and easy to use. 
+    This comment should not affect the execution of the code.
+ */
